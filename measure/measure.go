@@ -111,7 +111,7 @@ func runJobAndMeasure(ctx context.Context, targetJob, branch string) (time.Durat
 			run = runs[0]
 			break
 		}
-		if attempts >= 3 {
+		if attempts >= 5 {
 			return 0, fmt.Errorf("failed to find a run after %d attempts", attempts)
 		}
 		attempts++
@@ -129,7 +129,7 @@ func runJobAndMeasure(ctx context.Context, targetJob, branch string) (time.Durat
 		if runView.Status == RunViewStatusCompleted {
 			break
 		}
-		if attempts >= 100 {
+		if attempts >= 500 {
 			return 0, fmt.Errorf("failed to find a completed run after %d attempts", attempts)
 		}
 		attempts++
