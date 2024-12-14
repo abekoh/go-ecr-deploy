@@ -32,14 +32,14 @@ func getJSONFields[T any]() string {
 	return strings.Join(fields, ",")
 }
 
-func runGH(ctx context.Context, args ...string) error {
+func runRepoGH(ctx context.Context, args ...string) error {
 	commandArgs := append(args, "--repo", repositoryName)
 	log.Printf("gh %s", strings.Join(commandArgs, " "))
 	_, _, err := gh.ExecContext(ctx, commandArgs...)
 	return err
 }
 
-func runGHWithResponse[T any](ctx context.Context, args ...string) (T, error) {
+func runRepoGHWithResponse[T any](ctx context.Context, args ...string) (T, error) {
 	commandArgs := append(args, "--repo", repositoryName, "--json", getJSONFields[T]())
 	log.Printf("gh %s", strings.Join(commandArgs, " "))
 	var res T
@@ -85,7 +85,7 @@ const (
 
 func runJobAndMeasure(ctx context.Context, targetJob, branch string) (time.Duration, error) {
 	workflowStartedAt := time.Now()
-	if err := runGH(ctx, "workflow", "run", "deploy.yml", "-f", "targetJob="+targetJob, "--ref", branch); err != nil {
+	if err := runRepoGH(ctx, "workflow", "run", "deploy.yml", "-f", "targetJob="+targetJob, "--ref", branch); err != nil {
 		return 0, fmt.Errorf("failed to run gh command: %w", err)
 	}
 	time.Sleep(5 * time.Second)
@@ -93,7 +93,7 @@ func runJobAndMeasure(ctx context.Context, targetJob, branch string) (time.Durat
 	var run RunListElement
 	attempts := 0
 	for {
-		runs, err := runGHWithResponse[[]RunListElement](ctx, "run", "list", "--limit", "1", "--json", getJSONFields[RunListElement]())
+		runs, err := runRepoGHWithResponse[[]RunListElement](ctx, "run", "list", "--limit", "1", "--json", getJSONFields[RunListElement]())
 		if err != nil {
 			return 0, fmt.Errorf("failed to run gh command: %w", err)
 		}
@@ -114,7 +114,7 @@ func runJobAndMeasure(ctx context.Context, targetJob, branch string) (time.Durat
 	var runView RunView
 	attempts = 0
 	for {
-		rv, err := runGHWithResponse[RunView](ctx, "run", "view", fmt.Sprintf("%d", run.DatabaseID), "--json", getJSONFields[RunView]())
+		rv, err := runRepoGHWithResponse[RunView](ctx, "run", "view", fmt.Sprintf("%d", run.DatabaseID), "--json", getJSONFields[RunView]())
 		if err != nil {
 			return 0, fmt.Errorf("failed to run gh command: %w", err)
 		}
@@ -135,7 +135,7 @@ func runJobAndMeasure(ctx context.Context, targetJob, branch string) (time.Durat
 }
 
 func clearCache(ctx context.Context) error {
-	if err := runGH(ctx, "cache", "clear", "--all"); err != nil {
+	if _, _, err := gh.ExecContext(ctx, "cache", "delete", "--all"); err != nil {
 		return fmt.Errorf("failed to run gh command: %w", err)
 	}
 	return nil
