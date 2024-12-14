@@ -479,5 +479,5 @@ func handleRequest(ctx context.Context, event json.RawMessage) error {
 }
 
 func main() {
-	lambda.Start(ddlambda.WrapHandler(handleRequest))
+	lambda.Start(ddlambda.WrapFunction(handleRequest, nil))
 }
