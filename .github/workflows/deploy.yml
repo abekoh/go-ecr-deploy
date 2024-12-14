@@ -13,6 +13,7 @@ jobs:
   multistage-copy-nocache:
     env:
       IMAGE_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy:multistage-copy-nocache
+    if: github.ref_name == 'multistage-copy-nocache'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -34,6 +35,7 @@ jobs:
   multistage-copy-layercache-inline:
     env:
       IMAGE_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy:multistage-copy-layercache-inline
+    if: github.ref_name == 'multistage-copy-layercache-inline'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -57,6 +59,7 @@ jobs:
   multistage-copy-layercache-registry:
     env:
       IMAGE_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy:multistage-copy-layercache-registry
+    if: github.ref_name == 'multistage-copy-layercache-registry'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -80,6 +83,7 @@ jobs:
   multistage-copy-layercache-gha:
     env:
       IMAGE_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy:multistage-copy-layercache-gha
+    if: github.ref_name == 'multistage-copy-layercache-gha'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -103,6 +107,7 @@ jobs:
   multistage-copy-layercache-local:
     env:
       IMAGE_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy:multistage-copy-layercache-local
+    if: github.ref_name == 'multistage-copy-layercache-local'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -137,6 +142,7 @@ jobs:
   multistage-mount-layercache-gha:
     env:
       IMAGE_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy:multistage-mount-layercache-gha
+    if: github.ref_name == 'multistage-mount-layercache-gha'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -160,6 +166,7 @@ jobs:
   multistage-mount-layercache-gocache-gha:
     env:
       IMAGE_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy:multistage-mount-layercache-gocache-gha
+    if: github.ref_name == 'multistage-mount-layercache-gocache-gha'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -196,6 +203,7 @@ jobs:
   runneronly-layercache-gocache-gha:
     env:
       IMAGE_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy:runneronly-layercache-gocache-gha
+    if: github.ref_name == 'runneronly-layercache-gocache-gha'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -227,6 +235,7 @@ jobs:
     env:
       IMAGE_NAME: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy
       IMAGE_TAG: ko
+    if: github.ref_name == 'ko'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -246,6 +255,7 @@ jobs:
     env:
       IMAGE_NAME: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy
       IMAGE_TAG: buildpacks
+    if: github.ref_name == 'buildpacks'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
