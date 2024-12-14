@@ -36,7 +36,7 @@ resource "aws_iam_policy" "ecr_publish_policy" {
           "ecr:InitiateLayerUpload",
           "ecr:UploadLayerPart"
         ]
-        Resource = "*"
+        Resource = aws_ecr_repository.repository.arn
       }
     ]
   })
