@@ -3,7 +3,7 @@ name: deploy
 on:
   workflow_dispatch:
     inputs:
-      target:
+      targetJob:
         description: 'Target job to run'
         required: true
         options:
@@ -27,7 +27,7 @@ jobs:
     env:
       IMAGE_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy:multistage-copy-nocache
     runs-on: ubuntu-latest
-    if: github.event.inputs.target == 'multistage-copy-nocache'
+    if: github.event.inputs.targetJob == 'multistage-copy-nocache'
     steps:
       - uses: actions/checkout@v4
       - uses: aws-actions/configure-aws-credentials@v4
@@ -49,7 +49,7 @@ jobs:
     env:
       IMAGE_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy:multistage-copy-layercache-inline
     runs-on: ubuntu-latest
-    if: github.event.inputs.target == 'multistage-copy-layercache-inline'
+    if: github.event.inputs.targetJob == 'multistage-copy-layercache-inline'
     steps:
       - uses: actions/checkout@v4
       - uses: aws-actions/configure-aws-credentials@v4
@@ -73,7 +73,7 @@ jobs:
     env:
       IMAGE_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy:multistage-copy-layercache-registry
     runs-on: ubuntu-latest
-    if: github.event.inputs.target == 'multistage-copy-layercache-registry'
+    if: github.event.inputs.targetJob == 'multistage-copy-layercache-registry'
     steps:
       - uses: actions/checkout@v4
       - uses: aws-actions/configure-aws-credentials@v4
@@ -97,7 +97,7 @@ jobs:
     env:
       IMAGE_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy:multistage-copy-layercache-gha
     runs-on: ubuntu-latest
-    if: github.event.inputs.target == 'multistage-copy-layercache-gha'
+    if: github.event.inputs.targetJob == 'multistage-copy-layercache-gha'
     steps:
       - uses: actions/checkout@v4
       - uses: aws-actions/configure-aws-credentials@v4
@@ -121,7 +121,7 @@ jobs:
     env:
       IMAGE_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy:multistage-copy-layercache-local
     runs-on: ubuntu-latest
-    if: github.event.inputs.target == 'multistage-copy-layercache-local'
+    if: github.event.inputs.targetJob == 'multistage-copy-layercache-local'
     steps:
       - uses: actions/checkout@v4
       - uses: aws-actions/configure-aws-credentials@v4
@@ -156,7 +156,7 @@ jobs:
     env:
       IMAGE_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy:multistage-mount-layercache-gha
     runs-on: ubuntu-latest
-    if: github.event.inputs.target == 'multistage-mount-layercache-gha'
+    if: github.event.inputs.targetJob == 'multistage-mount-layercache-gha'
     steps:
       - uses: actions/checkout@v4
       - uses: aws-actions/configure-aws-credentials@v4
@@ -180,7 +180,7 @@ jobs:
     env:
       IMAGE_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy:multistage-mount-layercache-gocache-gha
     runs-on: ubuntu-latest
-    if: github.event.inputs.target == 'multistage-mount-layercache-gocache-gha'
+    if: github.event.inputs.targetJob == 'multistage-mount-layercache-gocache-gha'
     steps:
       - uses: actions/checkout@v4
       - uses: aws-actions/configure-aws-credentials@v4
@@ -217,7 +217,7 @@ jobs:
     env:
       IMAGE_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy:runneronly-layercache-gocache-gha
     runs-on: ubuntu-latest
-    if: github.event.inputs.target == 'runneronly-layercache-gocache-gha'
+    if: github.event.inputs.targetJob == 'runneronly-layercache-gocache-gha'
     steps:
       - uses: actions/checkout@v4
       - uses: aws-actions/configure-aws-credentials@v4
@@ -249,7 +249,7 @@ jobs:
       IMAGE_NAME: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy
       IMAGE_TAG: ko
     runs-on: ubuntu-latest
-    if: github.event.inputs.target == 'ko'
+    if: github.event.inputs.targetJob == 'ko'
     steps:
       - uses: actions/checkout@v4
       - uses: aws-actions/configure-aws-credentials@v4
@@ -269,7 +269,7 @@ jobs:
       IMAGE_NAME: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy
       IMAGE_TAG: buildpacks
     runs-on: ubuntu-latest
-    if: github.event.inputs.target == 'buildpacks'
+    if: github.event.inputs.targetJob == 'buildpacks'
     steps:
       - uses: actions/checkout@v4
       - uses: aws-actions/configure-aws-credentials@v4
