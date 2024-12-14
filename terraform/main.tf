@@ -86,48 +86,13 @@ resource "aws_lambda_function" "lambda" {
   image_uri    = "${aws_ecr_repository.repository.repository_url}:multistage-copy-nocache"
 }
 
-resource "aws_api_gateway_rest_api" "http_request_api" {
-  name        = "http-request-api"
-}
-
-resource "aws_api_gateway_resource" "root" {
-  rest_api_id = aws_api_gateway_rest_api.http_request_api.id
-  parent_id   = aws_api_gateway_rest_api.http_request_api.root_resource_id
-  path_part   = "request"
-}
-
-resource "aws_api_gateway_method" "get_request" {
-  rest_api_id   = aws_api_gateway_rest_api.http_request_api.id
-  resource_id   = aws_api_gateway_resource.root.id
-  http_method   = "GET"
-  authorization = "NONE"
-}
-
-resource "aws_api_gateway_integration" "lambda_integration" {
-  rest_api_id             = aws_api_gateway_rest_api.http_request_api.id
-  resource_id             = aws_api_gateway_resource.root.id
-  http_method             = aws_api_gateway_method.get_request.http_method
-  integration_http_method = "POST"
-  type                    = "AWS_PROXY"
-  uri                     = aws_lambda_function.lambda.invoke_arn
-}
-
-resource "aws_api_gateway_deployment" "http_request_deployment" {
-  rest_api_id = aws_api_gateway_rest_api.http_request_api.id
-  triggers = {
-    redeployment = sha1(jsonencode(aws_api_gateway_rest_api.http_request_api.body))
-  }
-
-  lifecycle {
-    create_before_destroy = true
-  }
-}
-
-resource "aws_lambda_permission" "allow_apigateway" {
-  action        = "lambda:InvokeFunction"
+resource "aws_lambda_function_url" "lambda_function_url" {
   function_name = aws_lambda_function.lambda.function_name
-  principal     = "apigateway.amazonaws.com"
-  statement_id  = "AllowAPIGatewayInvoke"
+  authorization_type = "NONE"
+}
+
+output "lambda_function_url" {
+  value = aws_lambda_function_url.lambda_function_url.function_url
 }
 
 output "AWS_ACCESS_KEY_ID" {
