@@ -135,6 +135,7 @@ func runJobAndMeasure(ctx context.Context, targetJob, branch string) (time.Durat
 }
 
 func clearCache(ctx context.Context) error {
+	log.Printf("gh cache delete --all")
 	if _, _, err := gh.ExecContext(ctx, "cache", "delete", "--all"); err != nil {
 		return fmt.Errorf("failed to run gh command: %w", err)
 	}
