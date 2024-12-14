@@ -84,16 +84,17 @@ const (
 )
 
 func main() {
-	if len(os.Args) != 2 {
-		fmt.Println("Usage: measure <target>")
+	if len(os.Args) != 3 {
+		fmt.Println("Usage: measure <target> <branch>")
 		os.Exit(1)
 	}
 	target := os.Args[1]
+	branch := os.Args[2]
 
 	ctx := context.Background()
 
 	workflowStartedAt := time.Now()
-	if err := runGH(ctx, "workflow", "run", "deploy.yml", "-f", "target="+target); err != nil {
+	if err := runGH(ctx, "workflow", "run", "deploy.yml", "-f", "target="+target, "--ref", branch); err != nil {
 		log.Fatalf("failed to run gh command: %v", err)
 	}
 	time.Sleep(5 * time.Second)
