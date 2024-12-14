@@ -62,7 +62,7 @@ func main() {
 	target := os.Args[1]
 
 	ctx := context.Background()
-	res, err := runGHCommand[[]RunListElement](ctx, "run", "list", "--branch", target)
+	res, err := runGHCommand[[]RunListElement](ctx, "run", "list", "--branch", target, "--limit", "1")
 	if err != nil {
 		log.Fatalf("failed to run gh command: %v", err)
 	}
