@@ -154,6 +154,9 @@ func clearCache(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+		if len(resp.ImageDetails) == 0 {
+			return nil
+		}
 
 		imageIds := make([]types.ImageIdentifier, 0, len(resp.ImageDetails))
 		for _, image := range resp.ImageDetails {
