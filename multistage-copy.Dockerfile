@@ -6,7 +6,7 @@ COPY go.mod go.sum ./
 RUN go mod download -x
 
 COPY main.go ./
-RUN go build -o /dist/app .
+RUN CGO_ENABLE=0 go build -o /dist/app .
 
 FROM public.ecr.aws/lambda/provided:al2023 AS runner
 

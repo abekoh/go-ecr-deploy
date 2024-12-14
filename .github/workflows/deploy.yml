@@ -198,7 +198,7 @@ jobs:
       - name: Build go app
         run: |
           mkdir -p ./dist
-          go build -o ./dist/app .
+          CGO_ENABLE=0 go build -o ./dist/app .
       - uses: docker/build-push-action@v6
         with:
           context: .
