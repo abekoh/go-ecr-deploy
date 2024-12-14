@@ -34,14 +34,14 @@ func getJSONFields[T any]() string {
 
 func runRepoGH(ctx context.Context, args ...string) error {
 	commandArgs := append(args, "--repo", repositoryName)
-	log.Printf("gh %s", strings.Join(commandArgs, " "))
+	log.Printf("[CMD] gh %s", strings.Join(commandArgs, " "))
 	_, _, err := gh.ExecContext(ctx, commandArgs...)
 	return err
 }
 
 func runRepoGHWithResponse[T any](ctx context.Context, args ...string) (T, error) {
 	commandArgs := append(args, "--repo", repositoryName, "--json", getJSONFields[T]())
-	log.Printf("gh %s", strings.Join(commandArgs, " "))
+	log.Printf("[CMD] gh %s", strings.Join(commandArgs, " "))
 	var res T
 	commandRes, _, err := gh.ExecContext(ctx, commandArgs...)
 	if err != nil {
@@ -135,7 +135,7 @@ func runJobAndMeasure(ctx context.Context, targetJob, branch string) (time.Durat
 }
 
 func clearCache(ctx context.Context) error {
-	log.Printf("gh cache delete --all")
+	log.Printf("[CMD] gh cache delete --all")
 	if _, _, err := gh.ExecContext(ctx, "cache", "delete", "--all"); err != nil {
 		return fmt.Errorf("failed to run gh command: %w", err)
 	}
