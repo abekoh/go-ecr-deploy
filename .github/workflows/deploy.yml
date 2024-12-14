@@ -8,8 +8,7 @@ on:
 jobs:
   multistage-nocache:
     env:
-      JOB: multistage-nocache
-      IMAGE_TAG: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy:${{ env.JOB }}
+      IMAGE_TAG: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy:multistage-nocache
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,8 +27,7 @@ jobs:
           tags: ${{ env.IMAGE_TAG }}
   multistage-layercache-inline:
     env:
-      JOB: multistage-layercache-inline
-      IMAGE_TAG: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy:${{ env.JOB }}
+      IMAGE_TAG: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy:multistage-layercache-inline
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -50,8 +48,7 @@ jobs:
           cache-to: type=inline
   multistage-layercache-registry:
     env:
-      JOB: multistage-layercache-registry
-      IMAGE_TAG: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy:${{ env.JOB }}
+      IMAGE_TAG: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy:multistage-layercache-registry
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -72,8 +69,7 @@ jobs:
           cache-to: type=registry,ref=${{ env.IMAGE_TAG }}-buildcache,mode=max
   multistage-layercache-gha:
     env:
-      JOB: multistage-layercache-gha
-      IMAGE_TAG: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy:${{ env.JOB }}
+      IMAGE_TAG: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy:multistage-layercache-gha
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -94,8 +90,7 @@ jobs:
           cache-to: type=gha,mode=max
   multistage-layercache-local:
     env:
-      JOB: multistage-layercache-local
-      IMAGE_TAG: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy:${{ env.JOB }}
+      IMAGE_TAG: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy:multistage-layercache-local
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
