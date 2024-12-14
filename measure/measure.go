@@ -32,7 +32,14 @@ func getJSONFields[T any]() string {
 	return strings.Join(fields, ",")
 }
 
-func runGHCommand[T any](ctx context.Context, args ...string) (T, error) {
+func runGH(ctx context.Context, args ...string) error {
+	commandArgs := append(args, "--repo", repositoryName)
+	log.Printf("gh %s", strings.Join(commandArgs, " "))
+	_, _, err := gh.ExecContext(ctx, commandArgs...)
+	return err
+}
+
+func runGHWithResponse[T any](ctx context.Context, args ...string) (T, error) {
 	commandArgs := append(args, "--repo", repositoryName, "--json", getJSONFields[T]())
 	log.Printf("gh %s", strings.Join(commandArgs, " "))
 	var res T
@@ -56,15 +63,14 @@ type RunListElement struct {
 
 func main() {
 	if len(os.Args) != 2 {
-		fmt.Println("Usage: measure <command>")
+		fmt.Println("Usage: measure <target>")
 		os.Exit(1)
 	}
 	target := os.Args[1]
 
 	ctx := context.Background()
-	res, err := runGHCommand[[]RunListElement](ctx, "run", "list", "--branch", target, "--limit", "1")
-	if err != nil {
+
+	if err := runGH(ctx, "workflow", "run", "deploy.yml", "-f", "target="+target); err != nil {
 		log.Fatalf("failed to run gh command: %v", err)
 	}
-	fmt.Printf("%+v\n", res)
 }
