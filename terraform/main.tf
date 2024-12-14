@@ -53,3 +53,8 @@ resource "aws_iam_access_key" "ecr_user_access_key" {
 output "AWS_ACCESS_KEY_ID" {
   value = aws_iam_access_key.ecr_user_access_key.id
 }
+
+output "AWS_SECRET_ACCESS_KEY" {
+  value = aws_iam_access_key.ecr_user_access_key.secret
+  sensitive = true
+}
