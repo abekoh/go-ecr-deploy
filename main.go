@@ -1,7 +1,8 @@
 package main
 
 import (
-	ddlambda "github.com/DataDog/datadog-lambda-go"
+	"encoding/base64"
+
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	_ "github.com/aws/aws-sdk-go-v2/service/accessanalyzer"
@@ -410,12 +411,19 @@ import (
 )
 
 func handleRequest(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	decodedBody, err := base64.StdEncoding.DecodeString(request.Body)
+	if err != nil {
+		return events.APIGatewayProxyResponse{
+			StatusCode: 500,
+			Body:       "Failed to decode body",
+		}, nil
+	}
 	return events.APIGatewayProxyResponse{
 		StatusCode: 200,
-		Body:       request.Body,
+		Body:       string(decodedBody),
 	}, nil
 }
 
 func main() {
-	lambda.Start(ddlambda.WrapFunction(handleRequest, nil))
+	lambda.Start(handleRequest)
 }
