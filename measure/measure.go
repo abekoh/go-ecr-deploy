@@ -10,10 +10,17 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/ecr"
+	"github.com/aws/aws-sdk-go-v2/service/ecr/types"
 	"github.com/cli/go-gh/v2"
 )
 
-const repositoryName = "abekoh/go-ecr-deploy"
+const (
+	gitRepoName = "abekoh/go-ecr-deploy"
+	ecrRepoName = "go-ecr-deploy"
+)
 
 func getJSONFields[T any]() string {
 	var d T
@@ -33,14 +40,14 @@ func getJSONFields[T any]() string {
 }
 
 func runRepoGH(ctx context.Context, args ...string) error {
-	commandArgs := append(args, "--repo", repositoryName)
+	commandArgs := append(args, "--repo", gitRepoName)
 	log.Printf("[CMD] gh %s", strings.Join(commandArgs, " "))
 	_, _, err := gh.ExecContext(ctx, commandArgs...)
 	return err
 }
 
 func runRepoGHWithResponse[T any](ctx context.Context, args ...string) (T, error) {
-	commandArgs := append(args, "--repo", repositoryName, "--json", getJSONFields[T]())
+	commandArgs := append(args, "--repo", gitRepoName, "--json", getJSONFields[T]())
 	log.Printf("[CMD] gh %s", strings.Join(commandArgs, " "))
 	var res T
 	commandRes, _, err := gh.ExecContext(ctx, commandArgs...)
@@ -139,6 +146,30 @@ func clearCache(ctx context.Context) error {
 	if _, _, err := gh.ExecContext(ctx, "cache", "delete", "--all"); err != nil {
 		return fmt.Errorf("failed to run gh command: %w", err)
 	}
+	log.Printf("[AWS] remove all images from ECR")
+	if err := tryNTimes(func() error {
+		resp, err := ecrClient.DescribeImages(ctx, &ecr.DescribeImagesInput{
+			RepositoryName: aws.String(ecrRepoName),
+		})
+		if err != nil {
+			return err
+		}
+
+		imageIds := make([]types.ImageIdentifier, 0, len(resp.ImageDetails))
+		for _, image := range resp.ImageDetails {
+			imageIds = append(imageIds, types.ImageIdentifier{ImageDigest: image.ImageDigest})
+		}
+
+		if _, err := ecrClient.BatchDeleteImage(ctx, &ecr.BatchDeleteImageInput{
+			RepositoryName: aws.String(ecrRepoName),
+			ImageIds:       imageIds,
+		}); err != nil {
+			return err
+		}
+		return nil
+	}, 1, 3); err != nil {
+		return fmt.Errorf("failed to remove all images from ECR: %w", err)
+	}
 	return nil
 }
 
@@ -160,6 +191,19 @@ func tryNTimes(f func() error, maxCount, maxAttempt int) error {
 		}
 	}
 	return nil
+}
+
+var (
+	ecrClient *ecr.Client
+)
+
+func init() {
+	cfg, err := config.LoadDefaultConfig(context.Background())
+	cfg.Region = "us-west-2"
+	if err != nil {
+		log.Fatalf("failed to load AWS config: %v", err)
+	}
+	ecrClient = ecr.NewFromConfig(cfg)
 }
 
 func main() {
