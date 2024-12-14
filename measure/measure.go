@@ -143,9 +143,7 @@ func runJobAndMeasure(ctx context.Context, targetJob, branch string) (time.Durat
 
 func clearCache(ctx context.Context) error {
 	log.Printf("[CMD] gh cache delete --all")
-	if _, _, err := gh.ExecContext(ctx, "cache", "delete", "--all"); err != nil {
-		return fmt.Errorf("failed to run gh command: %w", err)
-	}
+	_, _, _ = gh.ExecContext(ctx, "cache", "delete", "--all")
 	log.Printf("[AWS] remove all images from ECR")
 	if err := tryNTimes(func() error {
 		resp, err := ecrClient.DescribeImages(ctx, &ecr.DescribeImagesInput{
