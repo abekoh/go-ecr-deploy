@@ -30,6 +30,7 @@ resource "aws_iam_policy" "ecr_publish_policy" {
       {
         Effect = "Allow"
         Action = [
+          "ecr:GetAuthorizationToken",
           "ecr:BatchCheckLayerAvailability",
           "ecr:PutImage",
           "ecr:InitiateLayerUpload",
