@@ -311,21 +311,24 @@ func main() {
 		log.Printf("%v / Use cache (code changes): %v", targetJob, result.UseCacheCodeChanges)
 
 		results = append(results, result)
-		log.Printf("current results: %v", results)
+
+		// Output current results
+		resultJSON, err := json.Marshal(results)
+		if err != nil {
+			log.Fatalf("failed to marshal results: %v", err)
+		}
+		fmt.Println(string(resultJSON))
+
+		outJSONFile, err := os.Create(fmt.Sprintf("%s_results_(%d_of_%d).json", time.Now().Format("20060102_150405"), len(results), len(targetJobs)))
+		if err != nil {
+			log.Fatalf("failed to create outJSONFile: %v", err)
+		}
+		if _, err := outJSONFile.Write(resultJSON); err != nil {
+			log.Fatalf("failed to write resultJSON: %v", err)
+		}
+		if err := outJSONFile.Close(); err != nil {
+			log.Fatalf("failed to close outJSONFile: %v", err)
+		}
 	}
 
-	resultJSON, err := json.Marshal(results)
-	if err != nil {
-		log.Fatalf("failed to marshal results: %v", err)
-	}
-	fmt.Println(string(resultJSON))
-
-	outJSONFile, err := os.Create(fmt.Sprintf("%s_results.json", time.Now().Format("20060102_150405")))
-	if err != nil {
-		log.Fatalf("failed to create outJSONFile: %v", err)
-	}
-	defer outJSONFile.Close()
-	if _, err := outJSONFile.Write(resultJSON); err != nil {
-		log.Fatalf("failed to write resultJSON: %v", err)
-	}
 }
