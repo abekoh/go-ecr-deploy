@@ -23,17 +23,27 @@ resource "aws_iam_user" "ecr_user" {
 }
 
 resource "aws_iam_policy" "ecr_publish_policy" {
-  name        = "go-ecr-deploy-publish-policy"
+  name = "go-ecr-deploy-publish-policy"
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
+      // ref: https://github.com/aws-actions/amazon-ecr-login?tab=readme-ov-file#permissions
+      {
+        Effect = "Allow",
+        Action = [
+          "ecr:GetAuthorizationToken"
+        ],
+        Resource = "*"
+      },
       {
         Effect = "Allow"
         Action = [
-          "ecr:GetAuthorizationToken",
+          "ecr:BatchGetImage",
           "ecr:BatchCheckLayerAvailability",
-          "ecr:PutImage",
+          "ecr:CompleteLayerUpload",
+          "ecr:GetDownloadUrlForLayer",
           "ecr:InitiateLayerUpload",
+          "ecr:PutImage",
           "ecr:UploadLayerPart"
         ]
         Resource = aws_ecr_repository.repository.arn
@@ -56,6 +66,6 @@ output "AWS_ACCESS_KEY_ID" {
 }
 
 output "AWS_SECRET_ACCESS_KEY" {
-  value = aws_iam_access_key.ecr_user_access_key.secret
+  value     = aws_iam_access_key.ecr_user_access_key.secret
   sensitive = true
 }
