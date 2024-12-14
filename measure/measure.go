@@ -240,25 +240,19 @@ func main() {
 	for _, targetJob := range targetJobs {
 		result := Result{TargetJob: targetJob}
 
-		// No cache
-		log.Printf("%v / No cache: start", targetJob)
+		// Use cache (no changes)
+		log.Printf("%v / Use cache (no changes): start", targetJob)
 		if err := tryNTimes(func() error {
 			if err := clearCache(ctx); err != nil {
 				return err
 			}
-			duration, err := runJobAndMeasure(ctx, targetJob, "main")
-			if err != nil {
+			if _, err := runJobAndMeasure(ctx, targetJob, "main"); err != nil {
 				return err
 			}
-			result.NoCache = append(result.NoCache, duration)
 			return nil
-		}, maxCount, maxAttempts); err != nil {
+		}, 1, maxAttempts); err != nil {
 			log.Fatalf("failed to tryNTimes: %v", err)
 		}
-		log.Printf("%v / No cache: %v", targetJob, result.NoCache)
-
-		// Use cache (no changes)
-		log.Printf("%v / Use cache (no changes): start", targetJob)
 		if err := tryNTimes(func() error {
 			duration, err := runJobAndMeasure(ctx, targetJob, "main")
 			if err != nil {
@@ -271,20 +265,22 @@ func main() {
 		}
 		log.Printf("%v / Use cache (no changes): %v", targetJob, result.UseCacheNoChanges)
 
-		// Use cache (pkg changes)
+		// No cache & Use cache (pkg changes)
 		log.Printf("%v / Use cache (pkg changes): start", targetJob)
 		if err := tryNTimes(func() error {
 			if err := clearCache(ctx); err != nil {
 				return err
 			}
-			if _, err := runJobAndMeasure(ctx, targetJob, "main"); err != nil {
-				return err
-			}
-			duration, err := runJobAndMeasure(ctx, targetJob, "pkg-changes")
+			noCacheDuration, err := runJobAndMeasure(ctx, targetJob, "main")
 			if err != nil {
 				return err
 			}
-			result.UseCachePkgChanges = append(result.UseCachePkgChanges, duration)
+			useCachePkgChangesDuration, err := runJobAndMeasure(ctx, targetJob, "pkg-changes")
+			if err != nil {
+				return err
+			}
+			result.NoCache = append(result.NoCache, noCacheDuration)
+			result.UseCachePkgChanges = append(result.UseCachePkgChanges, useCachePkgChangesDuration)
 			return nil
 		}, maxCount, maxAttempts); err != nil {
 			log.Fatalf("failed to tryNTimes: %v", err)
