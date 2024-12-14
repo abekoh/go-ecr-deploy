@@ -223,10 +223,10 @@ jobs:
           tags: ${{ env.IMAGE_URI }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-  ko-gocache-gha:
+  ko:
     env:
       IMAGE_NAME: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy
-      IMAGE_TAG: ko-gocache-gha
+      IMAGE_TAG: ko
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -242,3 +242,21 @@ jobs:
       - name: Build and push image
         run: |
           KO_DOCKER_REPO=${IMAGE_NAME} ko build --bare --tags ${IMAGE_TAG} .
+  buildpacks:
+    env:
+      IMAGE_NAME: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy
+      IMAGE_TAG: buildpacks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+      - uses: aws-actions/amazon-ecr-login@v2
+      - uses: buildpacks/github-actions/setup-tools@v5.8.3
+      - name: Build and push image
+        run: |
+          pack build ${IMAGE_NAME}:${IMAGE_TAG} --builder gcr.io/buildpacks/builder
+          docker push ${IMAGE_NAME}:${IMAGE_TAG}
