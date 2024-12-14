@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	ddlambda "github.com/DataDog/datadog-lambda-go"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/config"
 	_ "github.com/aws/aws-sdk-go-v2/service/accessanalyzer"
@@ -478,5 +479,5 @@ func handleRequest(ctx context.Context, event json.RawMessage) error {
 }
 
 func main() {
-	lambda.Start(handleRequest)
+	lambda.Start(ddlambda.WrapHandler(handleRequest))
 }
