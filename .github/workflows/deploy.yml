@@ -255,7 +255,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-west-2
       - uses: aws-actions/amazon-ecr-login@v2
-      - uses: buildpacks/github-actions/setup-tools@v5.8.3
+      - uses: buildpacks/github-actions/setup-pack@v5.8.3
       - name: Build and push image
         run: |
           pack build ${IMAGE_NAME}:${IMAGE_TAG} --builder gcr.io/buildpacks/builder
