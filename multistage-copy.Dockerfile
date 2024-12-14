@@ -10,9 +10,9 @@ RUN go build -o /dist/app .
 
 FROM public.ecr.aws/lambda/provided:al2023 AS runner
 
-COPY --from=builder /dist/app ./app
 # set datadog extension
 # see: https://docs.datadoghq.com/ja/serverless/aws_lambda/installation/go/?tab=containerimage
 COPY --from=public.ecr.aws/datadog/lambda-extension:66 /opt/. /opt/
+COPY --from=builder /dist/app ./app
 
 ENTRYPOINT ["./app"]
