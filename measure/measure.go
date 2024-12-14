@@ -140,6 +140,25 @@ func clearCache(ctx context.Context) error {
 	return nil
 }
 
+func tryNTimes(f func() error, maxCount, maxAttempt int) error {
+	attempt := 0
+	count := 0
+	for {
+		if err := f(); err != nil {
+			attempt += 1
+			if attempt >= maxAttempt {
+				return fmt.Errorf("reached max attempt: %d, error: %w", attempt, err)
+			}
+			continue
+		}
+		count += 1
+		if count >= maxCount {
+			break
+		}
+	}
+	return nil
+}
+
 func main() {
 	targetJobs := []string{
 		"multistage-copy-nocache",
@@ -154,7 +173,8 @@ func main() {
 	}
 
 	ctx := context.Background()
-	count := 3
+	maxCount := 3
+	maxAttempts := 3
 
 	type Result struct {
 		TargetJob           string
@@ -169,54 +189,66 @@ func main() {
 		result := Result{TargetJob: targetJob}
 
 		// No cache
-		for range count {
+		if err := tryNTimes(func() error {
 			if err := clearCache(ctx); err != nil {
-				log.Fatalf("failed to clear cache: %v", err)
+				return err
 			}
 			duration, err := runJobAndMeasure(ctx, targetJob, "main")
 			if err != nil {
-				log.Fatalf("failed to run job and measure: %v", err)
+				return err
 			}
 			result.NoCache = append(result.NoCache, duration)
+			return nil
+		}, maxCount, maxAttempts); err != nil {
+			log.Fatalf("failed to tryNTimes: %v", err)
 		}
 
 		// Use cache (no changes)
-		for range count {
+		if err := tryNTimes(func() error {
 			duration, err := runJobAndMeasure(ctx, targetJob, "main")
 			if err != nil {
-				log.Fatalf("failed to run job and measure: %v", err)
+				return err
 			}
 			result.UseCacheNoChanges = append(result.UseCacheNoChanges, duration)
+			return nil
+		}, maxCount, maxAttempts); err != nil {
+			log.Fatalf("failed to tryNTimes: %v", err)
 		}
 
 		// Use cache (pkg changes)
-		for range count {
+		if err := tryNTimes(func() error {
 			if err := clearCache(ctx); err != nil {
-				log.Fatalf("failed to clear cache: %v", err)
+				return err
 			}
 			if _, err := runJobAndMeasure(ctx, targetJob, "main"); err != nil {
-				log.Fatalf("failed to run job and measure: %v", err)
+				return err
 			}
 			duration, err := runJobAndMeasure(ctx, targetJob, "pkg-changes")
 			if err != nil {
-				log.Fatalf("failed to run job and measure: %v", err)
+				return err
 			}
 			result.UseCachePkgChanges = append(result.UseCachePkgChanges, duration)
+			return nil
+		}, maxCount, maxAttempts); err != nil {
+			log.Fatalf("failed to tryNTimes: %v", err)
 		}
 
 		// Use cache (code changes)
-		for range count {
+		if err := tryNTimes(func() error {
 			if err := clearCache(ctx); err != nil {
-				log.Fatalf("failed to clear cache: %v", err)
+				return err
 			}
 			if _, err := runJobAndMeasure(ctx, targetJob, "main"); err != nil {
-				log.Fatalf("failed to run job and measure: %v", err)
+				return err
 			}
 			duration, err := runJobAndMeasure(ctx, targetJob, "code-changes")
 			if err != nil {
-				log.Fatalf("failed to run job and measure: %v", err)
+				return err
 			}
 			result.UseCacheCodeChanges = append(result.UseCacheCodeChanges, duration)
+			return nil
+		}, maxCount, maxAttempts); err != nil {
+			log.Fatalf("failed to tryNTimes: %v", err)
 		}
 
 		results = append(results, result)
