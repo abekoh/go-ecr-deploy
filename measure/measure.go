@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"reflect"
 	"strings"
 	"time"
@@ -149,6 +150,7 @@ func tryNTimes(f func() error, maxCount, maxAttempt int) error {
 			if attempt >= maxAttempt {
 				return fmt.Errorf("reached max attempt: %d, error: %w", attempt, err)
 			}
+			log.Printf("retrying after error: %v", err)
 			continue
 		}
 		count += 1
@@ -161,27 +163,31 @@ func tryNTimes(f func() error, maxCount, maxAttempt int) error {
 
 func main() {
 	targetJobs := []string{
-		"multistage-copy-nocache",
-		"multistage-copy-layercache-inline",
-		"multistage-copy-layercache-registry",
-		"multistage-copy-layercache-gha",
-		"multistage-copy-layercache-local",
-		"multistage-mount-layercache-gha",
-		"multistage-mount-layercache-gocache-gha",
-		"runneronly-layercache-gocache-gha",
+		//"multistage-copy-nocache",
+		//"multistage-copy-layercache-inline",
+		//"multistage-copy-layercache-registry",
+		//"multistage-copy-layercache-gha",
+		//"multistage-copy-layercache-local",
+		//"multistage-mount-layercache-gha",
+		//"multistage-mount-layercache-gocache-gha",
+		//"runneronly-layercache-gocache-gha",
 		"ko",
 	}
+
+	log.Printf("targetJobs: %v", targetJobs)
 
 	ctx := context.Background()
 	maxCount := 3
 	maxAttempts := 3
 
+	log.Printf("maxCount: %d, maxAttempts: %d", maxCount, maxAttempts)
+
 	type Result struct {
-		TargetJob           string
-		NoCache             []time.Duration
-		UseCacheNoChanges   []time.Duration
-		UseCachePkgChanges  []time.Duration
-		UseCacheCodeChanges []time.Duration
+		TargetJob           string          `json:"targetJob"`
+		NoCache             []time.Duration `json:"noCache"`
+		UseCacheNoChanges   []time.Duration `json:"useCacheNoChanges"`
+		UseCachePkgChanges  []time.Duration `json:"useCachePkgChanges"`
+		UseCacheCodeChanges []time.Duration `json:"useCacheCodeChanges"`
 	}
 	results := make([]Result, 0, len(targetJobs))
 
@@ -189,6 +195,7 @@ func main() {
 		result := Result{TargetJob: targetJob}
 
 		// No cache
+		log.Printf("%v / No cache: start", targetJob)
 		if err := tryNTimes(func() error {
 			if err := clearCache(ctx); err != nil {
 				return err
@@ -202,8 +209,10 @@ func main() {
 		}, maxCount, maxAttempts); err != nil {
 			log.Fatalf("failed to tryNTimes: %v", err)
 		}
+		log.Printf("%v / No cache: %v", targetJob, result.NoCache)
 
 		// Use cache (no changes)
+		log.Printf("%v / Use cache (no changes): start", targetJob)
 		if err := tryNTimes(func() error {
 			duration, err := runJobAndMeasure(ctx, targetJob, "main")
 			if err != nil {
@@ -214,8 +223,10 @@ func main() {
 		}, maxCount, maxAttempts); err != nil {
 			log.Fatalf("failed to tryNTimes: %v", err)
 		}
+		log.Printf("%v / Use cache (no changes): %v", targetJob, result.UseCacheNoChanges)
 
 		// Use cache (pkg changes)
+		log.Printf("%v / Use cache (pkg changes): start", targetJob)
 		if err := tryNTimes(func() error {
 			if err := clearCache(ctx); err != nil {
 				return err
@@ -232,8 +243,10 @@ func main() {
 		}, maxCount, maxAttempts); err != nil {
 			log.Fatalf("failed to tryNTimes: %v", err)
 		}
+		log.Printf("%v / Use cache (pkg changes): %v", targetJob, result.UseCachePkgChanges)
 
 		// Use cache (code changes)
+		log.Printf("%v / Use cache (code changes): start", targetJob)
 		if err := tryNTimes(func() error {
 			if err := clearCache(ctx); err != nil {
 				return err
@@ -250,7 +263,24 @@ func main() {
 		}, maxCount, maxAttempts); err != nil {
 			log.Fatalf("failed to tryNTimes: %v", err)
 		}
+		log.Printf("%v / Use cache (code changes): %v", targetJob, result.UseCacheCodeChanges)
 
 		results = append(results, result)
+		log.Printf("current results: %v", results)
+	}
+
+	resultJSON, err := json.Marshal(results)
+	if err != nil {
+		log.Fatalf("failed to marshal results: %v", err)
+	}
+	fmt.Println(string(resultJSON))
+
+	outJSONFile, err := os.Create(fmt.Sprintf("%s_results.json", time.Now().Format("20060102_150405")))
+	if err != nil {
+		log.Fatalf("failed to create outJSONFile: %v", err)
+	}
+	defer outJSONFile.Close()
+	if _, err := outJSONFile.Write(resultJSON); err != nil {
+		log.Fatalf("failed to write resultJSON: %v", err)
 	}
 }
