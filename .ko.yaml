@@ -1,4 +1,6 @@
 defaultBaseImage: public.ecr.aws/lambda/provided:al2023
+defaultPlatforms:
+- linux/amd64
 builds:
   - id: main
     dir: .
