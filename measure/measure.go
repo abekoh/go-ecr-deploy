@@ -61,6 +61,28 @@ type RunListElement struct {
 	DatabaseID   int       `json:"databaseId"`
 }
 
+type (
+	RunView struct {
+		DatabaseID int               `json:"databaseId"`
+		StartedAt  time.Time         `json:"startedAt"`
+		UpdatedAt  time.Time         `json:"updatedAt"`
+		Status     RunViewStatus     `json:"status"`
+		Conclusion RunViewConclusion `json:"conclusion"`
+	}
+	RunViewStatus     string
+	RunViewConclusion string
+)
+
+const (
+	RunViewStatusCompleted RunViewStatus = "completed"
+)
+
+const (
+	RunViewConclusionSuccess   RunViewConclusion = "success"
+	RunViewConclusionFailure   RunViewConclusion = "failure"
+	RunViewConclusionCancelled RunViewConclusion = "cancelled"
+)
+
 func main() {
 	if len(os.Args) != 2 {
 		fmt.Println("Usage: measure <target>")
@@ -70,7 +92,56 @@ func main() {
 
 	ctx := context.Background()
 
+	workflowStartedAt := time.Now()
 	if err := runGH(ctx, "workflow", "run", "deploy.yml", "-f", "target="+target); err != nil {
 		log.Fatalf("failed to run gh command: %v", err)
+	}
+	time.Sleep(5 * time.Second)
+
+	var run RunListElement
+	attempts := 0
+	for {
+		runs, err := runGHWithResponse[[]RunListElement](ctx, "run", "list", "--limit", "1", "--json", getJSONFields[RunListElement]())
+		if err != nil {
+			log.Fatalf("failed to run gh command: %v", err)
+		}
+		if len(runs) == 0 {
+			continue
+		}
+		if runs[0].StartedAt.After(workflowStartedAt) {
+			run = runs[0]
+			break
+		}
+		if attempts >= 3 {
+			log.Fatalf("failed to find a run after %d attempts", attempts)
+		}
+		attempts++
+		time.Sleep(5 * time.Second)
+	}
+
+	var runView RunView
+	attempts = 0
+	for {
+		rv, err := runGHWithResponse[RunView](ctx, "run", "view", fmt.Sprintf("%d", run.DatabaseID), "--json", getJSONFields[RunView]())
+		if err != nil {
+			log.Fatalf("failed to run gh command: %v", err)
+		}
+		runView = rv
+		if runView.Status == RunViewStatusCompleted {
+			break
+		}
+		if attempts >= 100 {
+			log.Fatalf("failed to find a completed run after %d attempts", attempts)
+		}
+		attempts++
+		time.Sleep(5 * time.Second)
+	}
+	switch runView.Conclusion {
+	case RunViewConclusionSuccess:
+		log.Println("Success")
+	case RunViewConclusionFailure:
+		log.Println("Failure")
+	case RunViewConclusionCancelled:
+		log.Println("Cancelled")
 	}
 }
