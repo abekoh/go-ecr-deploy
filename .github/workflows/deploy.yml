@@ -197,8 +197,8 @@ jobs:
           go-version: '1.23'
       - name: Build go app
         run: |
-          mkdir -p /dist
-          go build -o /dist/app .
+          mkdir -p ./dist
+          go build -o ./dist/app .
       - uses: docker/build-push-action@v6
         with:
           context: .
