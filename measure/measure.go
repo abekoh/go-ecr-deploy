@@ -136,12 +136,9 @@ func main() {
 		attempts++
 		time.Sleep(5 * time.Second)
 	}
-	switch runView.Conclusion {
-	case RunViewConclusionSuccess:
-		log.Println("Success")
-	case RunViewConclusionFailure:
-		log.Println("Failure")
-	case RunViewConclusionCancelled:
-		log.Println("Cancelled")
+	if runView.Conclusion != RunViewConclusionSuccess {
+		log.Fatalf("run failed: %s", runView.Conclusion)
 	}
+	elapsed := runView.UpdatedAt.Sub(runView.StartedAt)
+	log.Printf("run succeeded in %s", elapsed)
 }
