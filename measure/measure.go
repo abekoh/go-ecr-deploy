@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 	"reflect"
 	"strings"
 	"time"
@@ -83,19 +82,10 @@ const (
 	RunViewConclusionCancelled RunViewConclusion = "cancelled"
 )
 
-func main() {
-	if len(os.Args) != 3 {
-		fmt.Println("Usage: measure <targetJob> <branch>")
-		os.Exit(1)
-	}
-	targetJob := os.Args[1]
-	branch := os.Args[2]
-
-	ctx := context.Background()
-
+func runJobAndMeasure(ctx context.Context, targetJob, branch string) (time.Duration, error) {
 	workflowStartedAt := time.Now()
 	if err := runGH(ctx, "workflow", "run", "deploy.yml", "-f", "targetJob="+targetJob, "--ref", branch); err != nil {
-		log.Fatalf("failed to run gh command: %v", err)
+		return 0, fmt.Errorf("failed to run gh command: %w", err)
 	}
 	time.Sleep(5 * time.Second)
 
@@ -104,7 +94,7 @@ func main() {
 	for {
 		runs, err := runGHWithResponse[[]RunListElement](ctx, "run", "list", "--limit", "1", "--json", getJSONFields[RunListElement]())
 		if err != nil {
-			log.Fatalf("failed to run gh command: %v", err)
+			return 0, fmt.Errorf("failed to run gh command: %w", err)
 		}
 		if len(runs) == 0 {
 			continue
@@ -114,7 +104,7 @@ func main() {
 			break
 		}
 		if attempts >= 3 {
-			log.Fatalf("failed to find a run after %d attempts", attempts)
+			return 0, fmt.Errorf("failed to find a run after %d attempts", attempts)
 		}
 		attempts++
 		time.Sleep(5 * time.Second)
@@ -125,21 +115,110 @@ func main() {
 	for {
 		rv, err := runGHWithResponse[RunView](ctx, "run", "view", fmt.Sprintf("%d", run.DatabaseID), "--json", getJSONFields[RunView]())
 		if err != nil {
-			log.Fatalf("failed to run gh command: %v", err)
+			return 0, fmt.Errorf("failed to run gh command: %w", err)
 		}
 		runView = rv
 		if runView.Status == RunViewStatusCompleted {
 			break
 		}
 		if attempts >= 100 {
-			log.Fatalf("failed to find a completed run after %d attempts", attempts)
+			return 0, fmt.Errorf("failed to find a completed run after %d attempts", attempts)
 		}
 		attempts++
 		time.Sleep(5 * time.Second)
 	}
 	if runView.Conclusion != RunViewConclusionSuccess {
-		log.Fatalf("run failed: %s", runView.Conclusion)
+		return 0, fmt.Errorf("run failed: %s", runView.Conclusion)
 	}
-	elapsed := runView.UpdatedAt.Sub(runView.StartedAt)
-	log.Printf("run succeeded in %s", elapsed)
+	return runView.UpdatedAt.Sub(runView.StartedAt), nil
+}
+
+func clearCache(ctx context.Context) error {
+	if err := runGH(ctx, "cache", "clear", "--all"); err != nil {
+		return fmt.Errorf("failed to run gh command: %w", err)
+	}
+	return nil
+}
+
+func main() {
+	targetJobs := []string{
+		"multistage-copy-nocache",
+		"multistage-copy-layercache-inline",
+		"multistage-copy-layercache-registry",
+		"multistage-copy-layercache-gha",
+		"multistage-copy-layercache-local",
+		"multistage-mount-layercache-gha",
+		"multistage-mount-layercache-gocache-gha",
+		"runneronly-layercache-gocache-gha",
+		"ko",
+	}
+
+	ctx := context.Background()
+	count := 3
+
+	type Result struct {
+		TargetJob           string
+		NoCache             []time.Duration
+		UseCacheNoChanges   []time.Duration
+		UseCachePkgChanges  []time.Duration
+		UseCacheCodeChanges []time.Duration
+	}
+	results := make([]Result, 0, len(targetJobs))
+
+	for _, targetJob := range targetJobs {
+		result := Result{TargetJob: targetJob}
+
+		// No cache
+		for range count {
+			if err := clearCache(ctx); err != nil {
+				log.Fatalf("failed to clear cache: %v", err)
+			}
+			duration, err := runJobAndMeasure(ctx, targetJob, "main")
+			if err != nil {
+				log.Fatalf("failed to run job and measure: %v", err)
+			}
+			result.NoCache = append(result.NoCache, duration)
+		}
+
+		// Use cache (no changes)
+		for range count {
+			duration, err := runJobAndMeasure(ctx, targetJob, "main")
+			if err != nil {
+				log.Fatalf("failed to run job and measure: %v", err)
+			}
+			result.UseCacheNoChanges = append(result.UseCacheNoChanges, duration)
+		}
+
+		// Use cache (pkg changes)
+		for range count {
+			if err := clearCache(ctx); err != nil {
+				log.Fatalf("failed to clear cache: %v", err)
+			}
+			if _, err := runJobAndMeasure(ctx, targetJob, "main"); err != nil {
+				log.Fatalf("failed to run job and measure: %v", err)
+			}
+			duration, err := runJobAndMeasure(ctx, targetJob, "pkg-changes")
+			if err != nil {
+				log.Fatalf("failed to run job and measure: %v", err)
+			}
+			result.UseCachePkgChanges = append(result.UseCachePkgChanges, duration)
+		}
+
+		// Use cache (code changes)
+		for range count {
+			if err := clearCache(ctx); err != nil {
+				log.Fatalf("failed to clear cache: %v", err)
+			}
+			if _, err := runJobAndMeasure(ctx, targetJob, "main"); err != nil {
+				log.Fatalf("failed to run job and measure: %v", err)
+			}
+			duration, err := runJobAndMeasure(ctx, targetJob, "code-changes")
+			if err != nil {
+				log.Fatalf("failed to run job and measure: %v", err)
+			}
+			result.UseCacheCodeChanges = append(result.UseCacheCodeChanges, duration)
+		}
+
+		results = append(results, result)
+	}
 }
