@@ -219,7 +219,7 @@ func init() {
 	ecrClient = ecr.NewFromConfig(cfg)
 }
 
-func main() {
+func measure() {
 	//targetJobs := []string{
 	//	//"multistage-copy-nocache",
 	//	"multistage-copy-layercache-inline",
@@ -345,5 +345,18 @@ func main() {
 			log.Fatalf("failed to close outJSONFile: %v", err)
 		}
 	}
+}
 
+func main() {
+	if len(os.Args) != 2 {
+		log.Fatalf("invalid number of arguments: %v", os.Args)
+	}
+	switch os.Args[1] {
+	case "measure":
+		measure()
+	case "summary":
+		summary()
+	default:
+		log.Fatalf("invalid command: %v", os.Args[1])
+	}
 }
