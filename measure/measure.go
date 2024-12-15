@@ -220,16 +220,22 @@ func init() {
 }
 
 func main() {
+	//targetJobs := []string{
+	//	//"multistage-copy-nocache",
+	//	"multistage-copy-layercache-inline",
+	//	"multistage-copy-layercache-registry",
+	//	"multistage-copy-layercache-gha",
+	//	"multistage-copy-layercache-local",
+	//	"multistage-mount-layercache-gha",
+	//	"multistage-mount-layercache-gocache-gha",
+	//	"runneronly-layercache-gocache-gha",
+	//	"ko",
+	//}
+
+	// Recovery
 	targetJobs := []string{
-		//"multistage-copy-nocache",
-		"multistage-copy-layercache-inline",
-		"multistage-copy-layercache-registry",
-		"multistage-copy-layercache-gha",
-		"multistage-copy-layercache-local",
-		"multistage-mount-layercache-gha",
-		"multistage-mount-layercache-gocache-gha",
 		"runneronly-layercache-gocache-gha",
-		"ko",
+		"multistage-copy-nocache",
 	}
 
 	log.Printf("targetJobs: %v", targetJobs)
