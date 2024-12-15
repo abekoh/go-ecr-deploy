@@ -90,11 +90,25 @@ const (
 	RunViewConclusionCancelled RunViewConclusion = "cancelled"
 )
 
-type RunJobAndMeasureResult struct {
-	DatabaseID int           `json:"databaseId"`
-	StartedAt  time.Time     `json:"startedAt"`
-	UpdatedAt  time.Time     `json:"updatedAt"`
-	Elapsed    time.Duration `json:"elapsed"`
+type (
+	RunJobAndMeasureResult struct {
+		DatabaseID int           `json:"databaseId"`
+		StartedAt  time.Time     `json:"startedAt"`
+		UpdatedAt  time.Time     `json:"updatedAt"`
+		Elapsed    time.Duration `json:"elapsed"`
+	}
+	RunJobAndMeasureResults []RunJobAndMeasureResult
+)
+
+func (r RunJobAndMeasureResults) AverageElapsed() time.Duration {
+	if len(r) == 0 {
+		return 0
+	}
+	var sum time.Duration
+	for _, res := range r {
+		sum += res.Elapsed
+	}
+	return sum / time.Duration(len(r))
 }
 
 func runJobAndMeasure(ctx context.Context, targetJob, branch string) (RunJobAndMeasureResult, error) {
@@ -219,6 +233,14 @@ func init() {
 	ecrClient = ecr.NewFromConfig(cfg)
 }
 
+type MeasureResult struct {
+	TargetJob           string                  `json:"targetJob"`
+	NoCache             RunJobAndMeasureResults `json:"noCache"`
+	UseCacheNoChanges   RunJobAndMeasureResults `json:"useCacheNoChanges"`
+	UseCachePkgChanges  RunJobAndMeasureResults `json:"useCachePkgChanges"`
+	UseCacheCodeChanges RunJobAndMeasureResults `json:"useCacheCodeChanges"`
+}
+
 func measure() {
 	//targetJobs := []string{
 	//	//"multistage-copy-nocache",
@@ -246,17 +268,10 @@ func measure() {
 
 	log.Printf("maxCount: %d, maxAttempts: %d", maxCount, maxAttempts)
 
-	type Result struct {
-		TargetJob           string                   `json:"targetJob"`
-		NoCache             []RunJobAndMeasureResult `json:"noCache"`
-		UseCacheNoChanges   []RunJobAndMeasureResult `json:"useCacheNoChanges"`
-		UseCachePkgChanges  []RunJobAndMeasureResult `json:"useCachePkgChanges"`
-		UseCacheCodeChanges []RunJobAndMeasureResult `json:"useCacheCodeChanges"`
-	}
-	results := make([]Result, 0, len(targetJobs))
+	results := make([]MeasureResult, 0, len(targetJobs))
 
 	for _, targetJob := range targetJobs {
-		result := Result{TargetJob: targetJob}
+		result := MeasureResult{TargetJob: targetJob}
 
 		// Use cache (no changes)
 		log.Printf("%v / Use cache (no changes): start", targetJob)
