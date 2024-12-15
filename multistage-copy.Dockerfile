@@ -3,7 +3,7 @@ FROM golang:1.23-bullseye AS builder
 WORKDIR /go/src/github.com/micin-jp/chicken-api
 
 COPY go.mod go.sum ./
-RUN go mod download -x
+RUN go mod download
 
 COPY main.go ./
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /dist/app .
