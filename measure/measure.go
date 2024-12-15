@@ -90,10 +90,17 @@ const (
 	RunViewConclusionCancelled RunViewConclusion = "cancelled"
 )
 
-func runJobAndMeasure(ctx context.Context, targetJob, branch string) (time.Duration, error) {
+type RunJobAndMeasureResult struct {
+	DatabaseID int           `json:"databaseId"`
+	StartedAt  time.Time     `json:"startedAt"`
+	UpdatedAt  time.Time     `json:"updatedAt"`
+	Elapsed    time.Duration `json:"elapsed"`
+}
+
+func runJobAndMeasure(ctx context.Context, targetJob, branch string) (RunJobAndMeasureResult, error) {
 	workflowStartedAt := time.Now()
 	if err := runRepoGH(ctx, "workflow", "run", "deploy.yml", "-f", "targetJob="+targetJob, "--ref", branch); err != nil {
-		return 0, fmt.Errorf("failed to run gh command: %w", err)
+		return RunJobAndMeasureResult{}, fmt.Errorf("failed to run gh command: %w", err)
 	}
 	time.Sleep(5 * time.Second)
 
@@ -102,7 +109,7 @@ func runJobAndMeasure(ctx context.Context, targetJob, branch string) (time.Durat
 	for {
 		runs, err := runRepoGHWithResponse[[]RunListElement](ctx, "run", "list", "--limit", "1", "--json", getJSONFields[RunListElement]())
 		if err != nil {
-			return 0, fmt.Errorf("failed to run gh command: %w", err)
+			return RunJobAndMeasureResult{}, fmt.Errorf("failed to run gh command: %w", err)
 		}
 		if len(runs) == 0 {
 			continue
@@ -112,7 +119,7 @@ func runJobAndMeasure(ctx context.Context, targetJob, branch string) (time.Durat
 			break
 		}
 		if attempts >= 5 {
-			return 0, fmt.Errorf("failed to find a run after %d attempts", attempts)
+			return RunJobAndMeasureResult{}, fmt.Errorf("failed to find a run after %d attempts", attempts)
 		}
 		attempts++
 		time.Sleep(5 * time.Second)
@@ -123,22 +130,27 @@ func runJobAndMeasure(ctx context.Context, targetJob, branch string) (time.Durat
 	for {
 		rv, err := runRepoGHWithResponse[RunView](ctx, "run", "view", fmt.Sprintf("%d", run.DatabaseID), "--json", getJSONFields[RunView]())
 		if err != nil {
-			return 0, fmt.Errorf("failed to run gh command: %w", err)
+			return RunJobAndMeasureResult{}, fmt.Errorf("failed to run gh command: %w", err)
 		}
 		runView = rv
 		if runView.Status == RunViewStatusCompleted {
 			break
 		}
 		if attempts >= 500 {
-			return 0, fmt.Errorf("failed to find a completed run after %d attempts", attempts)
+			return RunJobAndMeasureResult{}, fmt.Errorf("failed to find a completed run after %d attempts", attempts)
 		}
 		attempts++
 		time.Sleep(5 * time.Second)
 	}
 	if runView.Conclusion != RunViewConclusionSuccess {
-		return 0, fmt.Errorf("run failed: %s", runView.Conclusion)
+		return RunJobAndMeasureResult{}, fmt.Errorf("run failed: %s", runView.Conclusion)
 	}
-	return runView.UpdatedAt.Sub(runView.StartedAt), nil
+	return RunJobAndMeasureResult{
+		DatabaseID: runView.DatabaseID,
+		StartedAt:  runView.StartedAt,
+		UpdatedAt:  runView.UpdatedAt,
+		Elapsed:    runView.UpdatedAt.Sub(runView.StartedAt),
+	}, nil
 }
 
 func clearCache(ctx context.Context) error {
@@ -229,11 +241,11 @@ func main() {
 	log.Printf("maxCount: %d, maxAttempts: %d", maxCount, maxAttempts)
 
 	type Result struct {
-		TargetJob           string          `json:"targetJob"`
-		NoCache             []time.Duration `json:"noCache"`
-		UseCacheNoChanges   []time.Duration `json:"useCacheNoChanges"`
-		UseCachePkgChanges  []time.Duration `json:"useCachePkgChanges"`
-		UseCacheCodeChanges []time.Duration `json:"useCacheCodeChanges"`
+		TargetJob           string                   `json:"targetJob"`
+		NoCache             []RunJobAndMeasureResult `json:"noCache"`
+		UseCacheNoChanges   []RunJobAndMeasureResult `json:"useCacheNoChanges"`
+		UseCachePkgChanges  []RunJobAndMeasureResult `json:"useCachePkgChanges"`
+		UseCacheCodeChanges []RunJobAndMeasureResult `json:"useCacheCodeChanges"`
 	}
 	results := make([]Result, 0, len(targetJobs))
 
@@ -254,11 +266,11 @@ func main() {
 			log.Fatalf("failed to tryNTimes: %v", err)
 		}
 		if err := tryNTimes(func() error {
-			duration, err := runJobAndMeasure(ctx, targetJob, "main")
+			r, err := runJobAndMeasure(ctx, targetJob, "main")
 			if err != nil {
 				return err
 			}
-			result.UseCacheNoChanges = append(result.UseCacheNoChanges, duration)
+			result.UseCacheNoChanges = append(result.UseCacheNoChanges, r)
 			return nil
 		}, maxCount, maxAttempts); err != nil {
 			log.Fatalf("failed to tryNTimes: %v", err)
@@ -271,16 +283,16 @@ func main() {
 			if err := clearCache(ctx); err != nil {
 				return err
 			}
-			noCacheDuration, err := runJobAndMeasure(ctx, targetJob, "main")
+			noCacheRes, err := runJobAndMeasure(ctx, targetJob, "main")
 			if err != nil {
 				return err
 			}
-			useCachePkgChangesDuration, err := runJobAndMeasure(ctx, targetJob, "pkg-changes")
+			useCachePkgChangesRes, err := runJobAndMeasure(ctx, targetJob, "pkg-changes")
 			if err != nil {
 				return err
 			}
-			result.NoCache = append(result.NoCache, noCacheDuration)
-			result.UseCachePkgChanges = append(result.UseCachePkgChanges, useCachePkgChangesDuration)
+			result.NoCache = append(result.NoCache, noCacheRes)
+			result.UseCachePkgChanges = append(result.UseCachePkgChanges, useCachePkgChangesRes)
 			return nil
 		}, maxCount, maxAttempts); err != nil {
 			log.Fatalf("failed to tryNTimes: %v", err)
@@ -296,11 +308,11 @@ func main() {
 			if _, err := runJobAndMeasure(ctx, targetJob, "main"); err != nil {
 				return err
 			}
-			duration, err := runJobAndMeasure(ctx, targetJob, "code-changes")
+			r, err := runJobAndMeasure(ctx, targetJob, "code-changes")
 			if err != nil {
 				return err
 			}
-			result.UseCacheCodeChanges = append(result.UseCacheCodeChanges, duration)
+			result.UseCacheCodeChanges = append(result.UseCacheCodeChanges, r)
 			return nil
 		}, maxCount, maxAttempts); err != nil {
 			log.Fatalf("failed to tryNTimes: %v", err)
