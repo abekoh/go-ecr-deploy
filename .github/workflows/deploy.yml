@@ -237,7 +237,7 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: .
-          file: multistage-mount.Dockerfile
+          file: runneronly.Dockerfile
           push: true
           platforms: linux/amd64
           provenance: false
