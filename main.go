@@ -85,7 +85,7 @@ import (
 )
 
 func handleRequest(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	decodedBody, err := base64.StdEncoding.DecodeString(request.Body)
+	_, err := base64.StdEncoding.DecodeString(request.Body)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: 500,
@@ -94,7 +94,7 @@ func handleRequest(request events.APIGatewayProxyRequest) (events.APIGatewayProx
 	}
 	return events.APIGatewayProxyResponse{
 		StatusCode: 200,
-		Body:       string(decodedBody),
+		Body:       "Hello, World!",
 	}, nil
 }
 
