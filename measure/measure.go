@@ -100,6 +100,11 @@ type (
 	RunJobAndMeasureResults []RunJobAndMeasureResult
 )
 
+func (r RunJobAndMeasureResult) DatabaseMDLink() string {
+	s := r.Elapsed.Round(time.Second) / time.Second
+	return fmt.Sprintf("[%ds](https://github.com/%s/actions/runs/%d) ", s, gitRepoName, r.DatabaseID)
+}
+
 func (r RunJobAndMeasureResults) AverageElapsed() time.Duration {
 	if len(r) == 0 {
 		return 0
